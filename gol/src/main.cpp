@@ -7,7 +7,7 @@
 int main() {
     constexpr int width = 1440;
     constexpr int height = 900;
-    Gol gol{width, height};
+    YuriGol::Gol gol{width, height};
 
     sf::RenderWindow window(sf::VideoMode(width, height), "0",
                             sf::Style::Titlebar | sf::Style::Close);

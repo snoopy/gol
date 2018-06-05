@@ -3,9 +3,12 @@
 #include <SFML/Graphics.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <ctime>
 #include <random>
 #include <vector>
+
+namespace GameOfLife {
 
 Gol::Gol(int width_, int height_)
     : width{width_}
@@ -27,20 +30,19 @@ void Gol::display_grid(sf::RenderWindow& window) const {
 
 void Gol::update() {
     grid_current.swap(grid_next);
+
     for (int m = 0; m < height; ++m) {
         for (int n = 0; n < width; ++n) {
-            apply_rules(count_neighbors(m, n), m, n);
+            apply_rules(width * m + n, count_neighbors(m, n));
         }
     }
 }
 
 void Gol::reset() {
     grid_current.clear();
-    grid_current.resize(static_cast<std::size_t>(height),
-        std::vector<bool>(width));
+    grid_current.resize(static_cast<std::size_t>(width * height));
     grid_next.clear();
-    grid_next.resize(static_cast<std::size_t>(height),
-        std::vector<bool>(width));
+    grid_next.resize(static_cast<std::size_t>(width * height));
     init_visuals();
     seed_grid();
 }
@@ -61,18 +63,16 @@ void Gol::init_visuals() {
 }
 
 void Gol::seed_grid() {
-    std::uniform_int_distribution<int> m_axis(0, height - 1);
-    std::uniform_int_distribution<int> n_axis(0, width - 1);
+    std::uniform_int_distribution<int> pos_dist(0, width * height);
     std::uniform_int_distribution<int> cells(width * height / 2,
                                             width * height);
 
     int initial_cell_nr = cells(rng);
     while (initial_cell_nr > 0) {
-        std::size_t m = m_axis(rng);
-        std::size_t n = n_axis(rng);
-        if (!grid_next[m][n]) {
-            grid_next[m][n] = true;
-            grid_visual[m * width + n].color = visual_alive;
+        std::size_t pos = pos_dist(rng);
+        if (!grid_next[pos]) {
+            grid_next[pos] = true;
+            grid_visual[pos].color = visual_alive;
             --initial_cell_nr;
         }
     }
@@ -91,7 +91,7 @@ int Gol::count_neighbors(int m_origin, int n_origin) const {
                 continue;
             }
 
-            if (grid_current[m_current][n_current]) {
+            if (grid_current[width * m_current + n_current]) {
                 if (++neighbors > 3) {
                     return neighbors;
                 }
@@ -101,33 +101,34 @@ int Gol::count_neighbors(int m_origin, int n_origin) const {
     return neighbors;
 }
 
-void Gol::apply_rules(int neighbors, int m, int n) {
-    grid_next[m][n] = grid_current[m][n];
+void Gol::apply_rules(int pos, int neighbors) {
+    grid_next[pos] = grid_current[pos];
 
     // Any live cell with fewer than two live neighbors dies,
     // as if caused by under population.
-    if (grid_current[m][n] && neighbors < 2) {
-        grid_next[m][n] = false;
-        grid_visual[m * width + n].color = visual_dead;
+    if (grid_current[pos] && neighbors < 2) {
+        grid_next[pos] = 0;
+        grid_visual[pos].color = visual_dead;
     }
 
     // Any live cell with two or three live neighbors lives on
-    if (grid_current[m][n] && (neighbors == 2 || neighbors == 3)) {
-        grid_next[m][n] = true;
-        grid_visual[m * width + n].color = visual_alive;
+    if (grid_current[pos] && (neighbors == 2 || neighbors == 3)) {
+        grid_next[pos] = 1;
+        grid_visual[pos].color = visual_alive;
     }
 
     // Any live cell with more than three live neighbors dies,
     // as if by overpopulation.
-    if (grid_current[m][n] && neighbors > 3) {
-        grid_next[m][n] = false;
-        grid_visual[m * width + n].color = visual_dead;
+    if (grid_current[pos] && neighbors > 3) {
+        grid_next[pos] = 0;
+        grid_visual[pos].color = visual_dead;
     }
 
     // Any dead cell with exactly three live neighbors becomes a live cell,
     // as if by reproduction.
-    if (!grid_current[m][n] && neighbors == 3) {
-        grid_next[m][n] = true;
-        grid_visual[m * width + n].color = visual_alive;
+    if (!grid_current[pos] && neighbors == 3) {
+        grid_next[pos] = 1;
+        grid_visual[pos].color = visual_alive;
     }
+}
 }

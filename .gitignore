@@ -1,2 +1,4 @@
 gol/src/**/*.o
 gol/_out/*
+gol/makefile
+gol/log
