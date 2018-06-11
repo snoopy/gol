@@ -1,23 +1,26 @@
-#include "gol.h"
+#include "model.h"
+#include "view.h"
+#include "controller.h"
 
 #include <SFML/Graphics.hpp>
 
+#include <vector>
 #include <string>
 
 int main() {
     constexpr int width = 1440;
     constexpr int height = 900;
-    YuriGol::Gol gol{width, height};
 
     sf::RenderWindow window(sf::VideoMode(width, height), "0",
                             sf::Style::Titlebar | sf::Style::Close);
     window.setFramerateLimit(60);
 
+    GameOfLife::Controller controller{width, height, window};
+
     constexpr float update_delay = .5;
-    bool is_active = false;
-    int iteration = 0;
     sf::Clock clock;
     clock.restart();
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -27,21 +30,7 @@ int main() {
                     break;
 
                 case sf::Event::KeyPressed:
-                    if (event.key.code == sf::Keyboard::P) {
-                        is_active = !is_active;
-                    }
-
-                    if (!is_active && event.key.code == sf::Keyboard::U) {
-                        window.setTitle(std::to_string(++iteration));
-                        gol.update();
-                    }
-
-                    if (event.key.code == sf::Keyboard::R) {
-                        is_active = false;
-                        iteration = 0;
-                        window.setTitle("0");
-                        gol.reset();
-                    }
+                    controller.on_keypress(event);
                     break;
 
                 default:
@@ -51,14 +40,12 @@ int main() {
 
         window.clear();
 
-        if (is_active &&
-            clock.getElapsedTime().asSeconds() >= update_delay) {
-            window.setTitle(std::to_string(++iteration));
-            gol.update();
+        if (clock.getElapsedTime().asSeconds() >= update_delay) {
+            controller.update_model();
             clock.restart();
         }
 
-        gol.display_grid(window);
+        controller.display_view();
 
         window.display();
     }
